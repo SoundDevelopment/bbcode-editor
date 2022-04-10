@@ -24,7 +24,7 @@ public:
     static constexpr auto kBulletCharacter { u8"\u2022" };
     static constexpr auto kOpenQuotes { u8"\u201C" };
     static constexpr auto kCloseQuotes { u8"\u201D" };
-    static constexpr auto kTabCharacter { "\t" };
+    static constexpr auto kTabCharacter { "    " };
 
     using juce::TextEditor::TextEditor;
 
@@ -36,6 +36,7 @@ private:
     bool                             m_quotePrefix { false };
     juce::Justification              m_justification { kDefaultJustification };
 
+    void initialise();
     void addBBText( const juce::String& text, const juce::String& value = {} );
     void parseJustification( const juce::String& justification, bool enable );
 

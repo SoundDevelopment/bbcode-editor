@@ -13,17 +13,21 @@
 
 namespace sd
 {
-    
 
-void BBCodeEditor::setBBText( const juce::String& bbText )
-{
-    // Initialise...
+void BBCodeEditor::initialise( )
+{   
     setJustification( kDefaultJustification );
     m_listPrefix  = false;
     m_quotePrefix = false;
     m_stateQueue.clear();
     m_stateQueue.emplace_back( sd::TextFormatState( findColour( juce::TextEditor::textColourId ) ) );
     clear();
+}
+//==============================================================================
+
+void BBCodeEditor::setBBText( const juce::String& bbText )
+{
+    initialise();
 
     auto plainText     = bbText.upToFirstOccurrenceOf( BBCode::kTokenStart, false, false );
     auto remainingText = bbText.fromFirstOccurrenceOf( BBCode::kTokenStart, false, false );
@@ -39,6 +43,7 @@ void BBCodeEditor::setBBText( const juce::String& bbText )
             continue;
         }
 
+        // Check for 'quote' tokens...
         juce::String value {};
         if( remainingText.startsWith( BBCode::kQuoteToken ) )
         {
@@ -87,18 +92,15 @@ void BBCodeEditor::setBBText( const juce::String& bbText )
             }
         }
 
+        // Assemble plain text to be added to the editor...
         if( succesfullyParsed )
-        {
             plainText = remainingText.fromFirstOccurrenceOf( BBCode::kTokenEnd, false, false ).upToFirstOccurrenceOf( BBCode::kTokenStart, false, false );
-        }
         else
-        {
             plainText = BBCode::kTokenStart + remainingText.upToFirstOccurrenceOf( BBCode::kTokenStart, false, false );
-        }
 
         // Trailing newlines for CODE blocks...
         if( remainingText.startsWith( BBCode::kCodeToken ) )
-            plainText = juce::newLine + juce::newLine + "    " + plainText + juce::newLine + juce::newLine;
+            plainText = juce::newLine + juce::newLine + kTabCharacter + plainText + juce::newLine + juce::newLine;
 
         addBBText( plainText, value );
 
@@ -110,6 +112,9 @@ void BBCodeEditor::setBBText( const juce::String& bbText )
 
 void BBCodeEditor::addBBText( const juce::String& text, const juce::String& value /*= {}*/ )
 {
+    if( text.isEmpty() )
+        return;
+
     sd::TextFormatState textFormatState { findColour( juce::TextEditor::textColourId ) };  // Default state.
     if( !m_stateQueue.empty() )
         textFormatState = m_stateQueue.back();
@@ -117,10 +122,11 @@ void BBCodeEditor::addBBText( const juce::String& text, const juce::String& valu
     setColour( juce::TextEditor::textColourId, textFormatState.getColour() );
     setFont( textFormatState.getFont() );
     moveCaretToEnd();
-
+    
+    // Add quote...
     if( m_quotePrefix )
     {
-        insertTextAtCaret( juce::newLine + juce::newLine + "|    " );
+        insertTextAtCaret( juce::newLine + juce::newLine + "|" + kTabCharacter );
         if( value.isNotEmpty() )
         {
             const auto previousFont = getFont();
@@ -132,10 +138,12 @@ void BBCodeEditor::addBBText( const juce::String& text, const juce::String& valu
         }
         insertTextAtCaret( juce::String::fromUTF8( kOpenQuotes ) + text + juce::String::fromUTF8( kCloseQuotes ) );
     }
+    // Add bullet list item...
     else if( m_listPrefix )
     {
-        insertTextAtCaret( juce::String::fromUTF8( kBulletCharacter ) + "    " + text );
+        insertTextAtCaret( juce::String::fromUTF8( kBulletCharacter ) + kTabCharacter + text );
     }
+    // Add plain text...
     else
     {
         insertTextAtCaret( text );
